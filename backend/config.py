@@ -1,8 +1,8 @@
 from functools import lru_cache
-from typing import List
+from typing import Annotated, List
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     secret_key: str = "change-me"
     environment: str = "development"
     log_level: str = "INFO"
-    cors_origins: List[str] = Field(default_factory=lambda: ["http://localhost", "http://localhost:5173"])
+    # NoDecode: Pydantic Settings would otherwise try to JSON-decode the env value
+    # for List[str] before our validator runs. We accept comma-separated strings.
+    cors_origins: Annotated[List[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost", "http://localhost:5173"]
+    )
 
     # DB
     postgres_url: str = "postgresql://seolab:seolab@db:5432/seolab"
