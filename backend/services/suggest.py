@@ -63,12 +63,16 @@ async def expand(
         seen: Set[str] = {seed}
         results: List[str] = []
         sem = asyncio.Semaphore(8)
+        # Python closure: this flag mutates across loop iterations, so it must
+        # live in fetch()'s scope (not as a closure on the parameter) to avoid
+        # NameError when fetch_for reads it before fetch's first reassignment.
+        breadth = alphabet_breadth
 
         async with httpx.AsyncClient(headers={"User-Agent": "Mozilla/5.0 SEOLab"}) as client:
             async def fetch_for(q: str) -> List[str]:
                 async with sem:
                     base = await _suggest_one(client, q, hl, gl)
-                    if alphabet_breadth:
+                    if breadth:
                         # Append " a".." z" to broaden discovery (one level only).
                         async def with_letter(letter: str) -> List[str]:
                             async with sem:
@@ -97,7 +101,7 @@ async def expand(
                 # Cap fanout per level to avoid combinatorial explosion.
                 current = next_level[:50]
                 # Disable alphabet broadening past level 1 to keep request count sane.
-                alphabet_breadth = False
+                breadth = False
 
         return results
 
