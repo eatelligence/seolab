@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from typing import Any, Dict, Iterable, List, Optional
 
 import httpx
@@ -157,28 +158,44 @@ async def keyword_suggestions(keyword: str, country: str = "US", limit: int = 10
     return await cached(key, DEFAULT_TTL, fetch)
 
 
+_QUESTION_RE = re.compile(
+    r"^(who|what|where|when|why|how|which|is|are|can|could|do|does|should|would|will)\b",
+    re.IGNORECASE,
+)
+
+
 async def keyword_questions(keyword: str, country: str = "US", limit: int = 100) -> List[dict]:
-    """Question variants — uses keyword_ideas with question filter."""
+    """Question variants — fetches keyword_ideas then filters question-pattern terms client-side.
+
+    DataForSEO's keyword_ideas endpoint doesn't expose the filters API used on
+    other Labs endpoints, so we over-fetch and prune locally.
+    """
     key = make_key("dfs", "questions", country, keyword.lower(), limit)
     body = [{
         "keywords": [keyword.lower()],
         "location_code": location_code(country),
         "language_code": language_code(country),
-        "limit": limit,
-        "filters": [["keyword_data.keyword", "regex", r"^(who|what|where|when|why|how|which|is|are|can|do|does)\b.*"]],
+        "limit": min(limit * 6, 1000),
     }]
+
     async def fetch():
         env = await _post("/dataforseo_labs/google/keyword_ideas/live", body)
         items = _items(env)
-        out = []
+        out: List[dict] = []
         for it in items:
-            info = (it.get("keyword_info") or {})
+            kw = (it.get("keyword") or "").strip()
+            if not kw or not _QUESTION_RE.match(kw):
+                continue
+            info = it.get("keyword_info") or {}
             out.append({
-                "keyword": it.get("keyword"),
+                "keyword": kw,
                 "search_volume": info.get("search_volume"),
                 "cpc": info.get("cpc"),
             })
+            if len(out) >= limit:
+                break
         return out
+
     return await cached(key, DEFAULT_TTL, fetch)
 
 
