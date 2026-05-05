@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+html, body, #root {
+  height: 100%;
+  background: #0B0E14;
+  color: #E5E7EB;
+  font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'ss02', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: var(--bg-grain);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+  mix-blend-mode: screen;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* Selection */
+::selection {
+  background: rgba(212, 245, 66, 0.25);
+  color: #E4FF6A;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0B0E14; }
+::-webkit-scrollbar-thumb { background: #1F2632; border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: #2A3242; }
+
+@layer components {
+  /* Section eyebrow (●  CATEGORY / NAME) */
+  .eyebrow {
+    @apply font-mono text-2xs uppercase tracking-widest2 text-muted flex items-center gap-2;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: theme('colors.signal.DEFAULT');
+    border-radius: 999px;
+    box-shadow: 0 0 8px rgba(212, 245, 66, 0.5);
+  }
+
+  /* Hairline panel (no rounded, no shadow, just a 1px line frame) */
+  .panel {
+    @apply bg-ink-200 border border-line;
+  }
+  .panel-soft {
+    @apply bg-ink-100 border border-line;
+  }
+
+  /* Display number — Fraunces, tabular */
+  .num-display {
+    font-family: 'Fraunces', serif;
+    font-feature-settings: 'tnum', 'lnum', 'ss01';
+    font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 0;
+    letter-spacing: -0.02em;
+  }
+
+  /* Tabular mono number */
+  .num-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-feature-settings: 'tnum', 'zero';
+  }
+
+  /* Page heading: Fraunces, optical 96, slight italic option */
+  .page-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 96, 'SOFT' 0, 'WONK' 1;
+    letter-spacing: -0.025em;
+    @apply text-bone text-[44px] leading-[1.05];
+  }
+
+  /* Stripe pattern utility for empty/loading bars */
+  .stripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+  }
+
+  /* Focus ring */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-signal/40 focus-visible:ring-offset-0;
+  }
+
+  /* Link underline anim */
+  .link-anim {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    transition: background-size 0.3s ease;
+  }
+  .link-anim:hover {
+    background-size: 0 1px;
+  }
+}
+
+/* Recharts: kill default font, color tooltip */
+.recharts-cartesian-axis-tick-value,
+.recharts-text {
+  fill: #5A6377 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 10px !important;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #11151E 25%, #161B26 50%, #11151E 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
