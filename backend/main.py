@@ -16,7 +16,9 @@ from routers import (
     dashboard,
     gsc,
     health,
+    domain,
     keywords,
+    onpage,
     projects,
     rankings,
     serp,
@@ -169,6 +171,8 @@ app.include_router(competitors.router)
 app.include_router(content.router)
 app.include_router(ai_visibility.router)
 app.include_router(serp.router)
+app.include_router(domain.router)
+app.include_router(onpage.router)
 
 
 @app.get("/")

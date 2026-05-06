@@ -344,3 +344,36 @@ async def top_pages(target: str, country: str = "US", limit: int = 100) -> List[
         env = await _post("/dataforseo_labs/google/relevant_pages/live", body)
         return _items(env)
     return await cached(key, DEFAULT_TTL, fetch)
+
+
+async def domain_organic_keywords(target: str, country: str = "US", limit: int = 50) -> List[dict]:
+    """Top keywords this domain ranks for (organic), with position + volume."""
+    key = make_key("dfs", "domain_kw", country, target, limit)
+    body = [{
+        "target": target,
+        "location_code": location_code(country),
+        "language_code": language_code(country),
+        "limit": limit,
+        "load_rank_absolute": True,
+        "order_by": ["keyword_data.keyword_info.search_volume,desc"],
+    }]
+    async def fetch():
+        env = await _post("/dataforseo_labs/google/ranked_keywords/live", body)
+        items = _items(env)
+        out = []
+        for it in items:
+            kd = it.get("keyword_data") or {}
+            info = kd.get("keyword_info") or {}
+            ranked = it.get("ranked_serp_element") or {}
+            serp = ranked.get("serp_item") or {}
+            out.append({
+                "keyword": kd.get("keyword"),
+                "position": serp.get("rank_absolute") or serp.get("rank_group"),
+                "url": serp.get("url"),
+                "search_volume": info.get("search_volume"),
+                "cpc": info.get("cpc"),
+                "competition": info.get("competition_level"),
+                "etv": ranked.get("etv"),
+            })
+        return out
+    return await cached(key, DEFAULT_TTL, fetch)

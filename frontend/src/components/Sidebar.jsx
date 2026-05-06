@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Search as SearchIcon, LineChart, Stethoscope,
   Link2, Users, FileText, Sparkles, FolderKanban, Tags, Settings,
-  UserCircle2, LogOut, Globe2,
+  UserCircle2, LogOut, Globe2, ScanLine, Building2,
 } from 'lucide-react';
 import { useProject } from '@/context/ProjectContext';
 import { useAuth } from '@/context/AuthContext';
@@ -28,12 +28,14 @@ const sections = [
     eyebrow: '03 / SITE',
     items: [
       { to: 'audit', icon: Stethoscope, label: 'Site Audit', code: 'SA' },
+      { to: 'onpage', icon: ScanLine, label: 'On-page Checker', code: 'OP' },
       { to: 'backlinks', icon: Link2, label: 'Backlinks', code: 'BL' },
     ],
   },
   {
     eyebrow: '04 / INTELLIGENCE',
     items: [
+      { to: 'domain', icon: Building2, label: 'Domain Overview', code: 'DO' },
       { to: 'competitors', icon: Users, label: 'Competitors', code: 'CP' },
       { to: 'content', icon: FileText, label: 'Content / AI', code: 'CO' },
       { to: 'ai-visibility', icon: Sparkles, label: 'AI Visibility', code: 'AV' },

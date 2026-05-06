@@ -119,6 +119,16 @@ export const serpApi = {
   overview: (projectId, params) => get(`/projects/${projectId}/serp`, params),
 };
 
+// ---------- Domain Overview (lookup any domain) ----------
+export const domainApi = {
+  overview: (projectId, params) => get(`/projects/${projectId}/domain/overview`, params),
+};
+
+// ---------- On-page SEO checker (single URL) ----------
+export const onpageApi = {
+  check: (projectId, params) => get(`/projects/${projectId}/onpage`, params),
+};
+
 // ---------- AI Visibility ----------
 export const aiVisApi = {
   queries: (projectId) => get(`/projects/${projectId}/ai-visibility/queries`),
