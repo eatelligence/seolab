@@ -6,6 +6,7 @@ from models.audit import AuditRun, AuditIssue, AuditPage
 from models.backlink import Backlink, BacklinkSnapshot
 from models.ai_visibility import AIVisibilityQuery, AIVisibilityCheck
 from models.gsc import GSCToken
+from models.user import User
 
 __all__ = [
     "Base",
@@ -24,4 +25,5 @@ __all__ = [
     "AIVisibilityQuery",
     "AIVisibilityCheck",
     "GSCToken",
+    "User",
 ]

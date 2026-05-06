@@ -8,13 +8,15 @@ import './index.css';
 import App from './App';
 import { queryClient } from './lib/queryClient';
 import { ProjectProvider } from './context/ProjectContext';
+import { AuthProvider } from './context/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <ProjectProvider>
-          <App />
+        <AuthProvider>
+          <ProjectProvider>
+            <App />
           <Toaster
             theme="dark"
             position="bottom-right"
@@ -30,7 +32,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               },
             }}
           />
-        </ProjectProvider>
+          </ProjectProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>,

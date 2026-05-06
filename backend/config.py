@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     secret_key: str = "change-me"
     environment: str = "development"
     log_level: str = "INFO"
+
+    # Bootstrap admin (used only when DB has zero users)
+    seolab_admin_email: str = ""
+    seolab_admin_password: str = ""
     # NoDecode: Pydantic Settings would otherwise try to JSON-decode the env value
     # for List[str] before our validator runs. We accept comma-separated strings.
     cors_origins: Annotated[List[str], NoDecode] = Field(

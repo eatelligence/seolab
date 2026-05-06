@@ -18,6 +18,8 @@ google-api-python-client==2.155.0
 python-multipart==0.0.19
 python-jose[cryptography]==3.3.0
 cryptography==44.0.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 tenacity==9.0.0
 orjson==3.10.12
 reportlab==4.2.5

@@ -2,8 +2,10 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Search as SearchIcon, LineChart, Stethoscope,
   Link2, Users, FileText, Sparkles, FolderKanban, Tags, Settings,
+  UserCircle2, LogOut,
 } from 'lucide-react';
 import { useProject } from '@/context/ProjectContext';
+import { useAuth } from '@/context/AuthContext';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +42,7 @@ const sections = [
 
 export function Sidebar() {
   const { active } = useProject();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="w-[260px] shrink-0 border-r border-line bg-ink-300 flex flex-col h-full">
@@ -88,16 +91,35 @@ export function Sidebar() {
               <span className="ml-auto font-mono text-[10px] text-dim">ST</span>
             </NavLink>
           )}
+          <NavLink to="/account" className={navClass}>
+            <UserCircle2 className="w-3.5 h-3.5 text-signal/70" />
+            <span className="text-sm">Account</span>
+            <span className="ml-auto font-mono text-[10px] text-dim">AC</span>
+          </NavLink>
         </div>
       </nav>
 
-      <div className="p-4 border-t border-line">
-        <p className="text-2xs font-mono uppercase tracking-widest2 text-dim leading-relaxed">
+      <div className="border-t border-line">
+        {user && (
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-ink-200 transition-colors group"
+          >
+            <span className="w-7 h-7 shrink-0 grid place-items-center bg-ink-100 border border-line2">
+              <span className="font-display text-sm text-signal" style={{ fontVariationSettings: "'WONK' 1" }}>
+                {user.email?.[0]?.toUpperCase() || '·'}
+              </span>
+            </span>
+            <span className="flex flex-col items-start min-w-0 flex-1">
+              <span className="text-2xs font-mono uppercase tracking-widest2 text-dim">Signed in</span>
+              <span className="text-xs text-bone font-mono truncate max-w-[150px]">{user.email}</span>
+            </span>
+            <LogOut className="w-3.5 h-3.5 text-dim group-hover:text-minus transition-colors" />
+          </button>
+        )}
+        <p className="px-4 pb-3 text-2xs font-mono uppercase tracking-widest2 text-dim leading-relaxed">
           REC // <span className="text-signal animate-pulse-dot">●</span>
-          <br />
-          search intelligence
-          <br />
-          <span className="text-dim/50">v0.1.0 · 2026</span>
+          <span className="text-dim/50 ml-2">v0.1.0 · 2026</span>
         </p>
       </div>
     </aside>
