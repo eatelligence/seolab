@@ -1,6 +1,8 @@
+import uuid
+from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SEOBriefRequest(BaseModel):
@@ -25,3 +27,23 @@ class CalendarRequest(BaseModel):
     niche: str = Field(min_length=2, max_length=255)
     goals: str = Field(min_length=2, max_length=2000)
     days: int = Field(default=30, ge=7, le=90)
+
+
+class ContentOutputOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    project_id: uuid.UUID
+    tool_type: str
+    title: str
+    input: dict
+    output: dict
+    created_at: datetime
+
+
+class ContentOutputSummary(BaseModel):
+    """Lightweight version for history list (no output blob)."""
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    tool_type: str
+    title: str
+    created_at: datetime

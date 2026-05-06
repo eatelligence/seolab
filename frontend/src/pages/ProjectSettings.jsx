@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { projectsApi, tagsApi, gscApi } from '@/api';
+import { COUNTRIES } from '@/lib/countries';
 import { PageHeader, SectionHeading } from '@/components/SectionHeading';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -94,7 +95,7 @@ export default function ProjectSettings() {
           <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input label="Domain" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
           <Select label="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}>
-            {['US','GB','IT','ES','FR','DE','PT','NL','BR','MX','JP','IN','AU','CA'].map((c) => <option key={c}>{c}</option>)}
+            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
           </Select>
           <Input
             label="Competitors"

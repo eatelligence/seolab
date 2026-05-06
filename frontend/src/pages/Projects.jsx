@@ -14,11 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Empty } from '@/components/ui/Empty';
 import { useProject } from '@/context/ProjectContext';
 import { fmtDate } from '@/lib/format';
-
-const COUNTRIES = [
-  'US', 'GB', 'IT', 'ES', 'FR', 'DE', 'PT', 'NL', 'CH', 'AT',
-  'SE', 'NO', 'DK', 'BR', 'MX', 'AR', 'CA', 'AU', 'JP', 'IN',
-];
+import { COUNTRIES } from '@/lib/countries';
 
 export default function Projects() {
   const qc = useQueryClient();
@@ -196,7 +192,7 @@ function NewProjectModal({ open, onClose, tags, countries, onCreated }) {
         <Input label="Project name" placeholder="Acme Corp" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="col-span-2" />
         <Input label="Domain" placeholder="acme.com" required value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} hint="https:// and www. are stripped automatically" />
         <Select label="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}>
-          {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+          {countries.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
         </Select>
         <Input label="Competitors" placeholder="competitor1.com, competitor2.com"
           value={form.competitors} onChange={(e) => setForm({ ...form, competitors: e.target.value })}

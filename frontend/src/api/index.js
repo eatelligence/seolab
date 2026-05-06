@@ -99,6 +99,9 @@ export const contentApi = {
   optimize: (projectId, body) => post(`/projects/${projectId}/content/optimize`, body),
   meta: (projectId, body) => post(`/projects/${projectId}/content/meta`, body),
   calendar: (projectId, body) => post(`/projects/${projectId}/content/calendar`, body),
+  history: (projectId, params) => get(`/projects/${projectId}/content/history`, params),
+  historyOne: (projectId, outputId) => get(`/projects/${projectId}/content/history/${outputId}`),
+  historyDelete: (projectId, outputId) => del(`/projects/${projectId}/content/history/${outputId}`),
 };
 
 // ---------- AI Visibility ----------

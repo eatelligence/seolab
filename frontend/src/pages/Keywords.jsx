@@ -15,6 +15,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
 import { fmtCompact, fmtInt, fmtMoney, fmtNum } from '@/lib/format';
 import { Sparkline } from '@/components/Sparkline';
+import { COUNTRIES } from '@/lib/countries';
 
 export default function Keywords() {
   const { projectId } = useParams();
@@ -77,7 +78,7 @@ export default function Keywords() {
             onChange={(e) => setSeed(e.target.value)}
           />
           <Select label="Country" value={country} onChange={(e) => setCountry(e.target.value)}>
-            {['US','GB','IT','ES','FR','DE','PT','NL','BR','MX','JP','IN','AU','CA'].map((c) => <option key={c}>{c}</option>)}
+            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
           </Select>
           <Select label="Depth" value={levels} onChange={(e) => setLevels(Number(e.target.value))}>
             <option value={1}>1 level</option>

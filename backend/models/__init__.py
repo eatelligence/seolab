@@ -7,6 +7,7 @@ from models.backlink import Backlink, BacklinkSnapshot
 from models.ai_visibility import AIVisibilityQuery, AIVisibilityCheck
 from models.gsc import GSCToken
 from models.user import User
+from models.content import ContentOutput
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "AIVisibilityCheck",
     "GSCToken",
     "User",
+    "ContentOutput",
 ]
