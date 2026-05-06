@@ -69,6 +69,12 @@ class BulkTrackRequest(BaseModel):
     tracked: bool = True
 
 
+class KeywordImportRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2_000_000)
+    country: str = Field(default="US", min_length=2, max_length=2)
+    track: bool = False
+
+
 class ResearchHistoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

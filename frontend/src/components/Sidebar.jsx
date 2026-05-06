@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Search as SearchIcon, LineChart, Stethoscope,
   Link2, Users, FileText, Sparkles, FolderKanban, Tags, Settings,
-  UserCircle2, LogOut,
+  UserCircle2, LogOut, Globe2,
 } from 'lucide-react';
 import { useProject } from '@/context/ProjectContext';
 import { useAuth } from '@/context/AuthContext';
@@ -21,6 +21,7 @@ const sections = [
     items: [
       { to: 'keywords', icon: SearchIcon, label: 'Keyword Research', code: 'KW' },
       { to: 'rank-tracker', icon: LineChart, label: 'Rank Tracker', code: 'RT' },
+      { to: 'serp', icon: Globe2, label: 'SERP Overview', code: 'SP' },
     ],
   },
   {

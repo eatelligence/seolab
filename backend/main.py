@@ -19,6 +19,7 @@ from routers import (
     keywords,
     projects,
     rankings,
+    serp,
 )
 from services.auth import decode_token
 
@@ -167,6 +168,7 @@ app.include_router(backlinks.router)
 app.include_router(competitors.router)
 app.include_router(content.router)
 app.include_router(ai_visibility.router)
+app.include_router(serp.router)
 
 
 @app.get("/")

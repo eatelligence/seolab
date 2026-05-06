@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Search, Sparkles, Bookmark, History, RotateCcw, Trash2, Eye, Activity } from 'lucide-react';
+import { Download, Search, Sparkles, Bookmark, History, RotateCcw, Trash2, Eye, Activity, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -9,10 +9,11 @@ import { keywordsApi, projectsApi } from '@/api';
 import { PageHeader } from '@/components/SectionHeading';
 import { Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { fmtCompact, fmtMoney, fmtNum, fmtRelative } from '@/lib/format';
 import { Sparkline } from '@/components/Sparkline';
 import { COUNTRIES } from '@/lib/countries';
@@ -342,6 +343,7 @@ function ResultsTable({ rows, loading, questions }) {
 
 function SavedTable({ rows, loading, projectId, onBulkTrack, onBulkDelete }) {
   const [selected, setSelected] = useState(new Set());
+  const [importOpen, setImportOpen] = useState(false);
 
   const toggle = (id) => {
     const next = new Set(selected);
@@ -387,11 +389,16 @@ function SavedTable({ rows, loading, projectId, onBulkTrack, onBulkDelete }) {
               </Button>
             </>
           )}
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="w-3.5 h-3.5" /> import
+          </Button>
           <a href={`/api/projects/${projectId}/keywords/export.csv`} target="_blank" rel="noreferrer">
             <Button variant="outline"><Download className="w-3.5 h-3.5" /> export csv</Button>
           </a>
         </div>
       </div>
+
+      <ImportKeywordsModal projectId={projectId} open={importOpen} onClose={() => setImportOpen(false)} />
       <DataTable
         columns={[
           {
@@ -416,5 +423,74 @@ function SavedTable({ rows, loading, projectId, onBulkTrack, onBulkDelete }) {
         keyField="id"
       />
     </>
+  );
+}
+
+
+function ImportKeywordsModal({ projectId, open, onClose }) {
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [country, setCountry] = useState("US");
+  const [track, setTrack] = useState(false);
+
+  const submit = useMutation({
+    mutationFn: () => keywordsApi.importBulk(projectId, { text, country, track }),
+    onSuccess: (r) => {
+      toast.success(`Imported · ${r.saved} new · ${r.updated} updated · ${r.total} total`);
+      qc.invalidateQueries({ queryKey: ["keywords"] });
+      setText("");
+      onClose();
+    },
+  });
+
+  const lineCount = text.split(/\r?\n/).filter((l) => l.trim()).length;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      eyebrow="KEYWORDS / IMPORT"
+      title="Bulk import"
+      size="lg"
+      footer={
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-mono text-2xs uppercase tracking-widest2 text-dim">
+            {lineCount} line{lineCount === 1 ? "" : "s"} detected
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>cancel</Button>
+            <Button variant="primary" onClick={() => submit.mutate()} loading={submit.isPending} disabled={!text.trim()}>
+              <Upload className="w-3.5 h-3.5" /> import
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-muted">
+          Paste either a plain list (one keyword per line) <span className="text-bone">or</span> a CSV with a header row.
+          Format auto-detected.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <Select label="Default country" value={country} onChange={(e) => setCountry(e.target.value)}>
+            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
+          </Select>
+          <label className="flex items-end gap-2 pb-2">
+            <input type="checkbox" checked={track} onChange={(e) => setTrack(e.target.checked)} className="accent-signal" />
+            <span className="font-mono text-2xs uppercase tracking-widest2 text-bone">track imported keywords</span>
+          </label>
+        </div>
+        <Textarea
+          label="Paste keywords"
+          rows={14}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={"Plain list:\nbest pizza catering sydney\nmobile pizza party\npizza truck hire\n\nor CSV:\nkeyword,country,search_volume,kd,cpc\npizza catering sydney,AU,480,4,4.08\nmobile pizza,AU,1200,12,2.5"}
+        />
+        <p className="text-2xs font-mono uppercase tracking-widest2 text-dim">
+          CSV columns recognised: keyword (required) · country · search_volume · keyword_difficulty · cpc · intent · tracked
+        </p>
+      </div>
+    </Modal>
   );
 }

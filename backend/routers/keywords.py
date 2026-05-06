@@ -1,4 +1,7 @@
+import csv
+import io
 import logging
+import re
 import uuid
 from typing import List, Optional
 
@@ -16,6 +19,7 @@ from routers._helpers import get_project_or_404, to_csv
 from schemas.common import ok
 from schemas.keyword import (
     BulkTrackRequest,
+    KeywordImportRequest,
     KeywordListCreate,
     KeywordListOut,
     KeywordOut,
@@ -272,6 +276,117 @@ async def bulk_track(
         kw.tracked = payload.tracked
     await db.commit()
     return ok({"updated": len(rows), "tracked": payload.tracked})
+
+
+_NUMERIC_RE = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def _to_int(v) -> Optional[int]:
+    if v is None or v == "":
+        return None
+    m = _NUMERIC_RE.search(str(v))
+    return int(float(m.group())) if m else None
+
+
+def _to_float(v) -> Optional[float]:
+    if v is None or v == "":
+        return None
+    m = _NUMERIC_RE.search(str(v).replace(",", "."))
+    return float(m.group()) if m else None
+
+
+def _parse_import_text(text: str, default_country: str, track: bool) -> List[dict]:
+    text = (text or "").strip()
+    if not text:
+        return []
+
+    first_line = text.split("\n", 1)[0].lower()
+    is_csv = ("," in first_line or ";" in first_line) and any(
+        h in first_line for h in ("keyword", "kw", "query", "term")
+    )
+
+    rows: List[dict] = []
+    if is_csv:
+        # Detect delimiter
+        delim = ";" if first_line.count(";") > first_line.count(",") else ","
+        reader = csv.DictReader(io.StringIO(text), delimiter=delim)
+        for raw in reader:
+            normalised = {k.strip().lower(): (v.strip() if isinstance(v, str) else v)
+                          for k, v in (raw or {}).items() if k}
+            kw = normalised.get("keyword") or normalised.get("kw") or normalised.get("query") or normalised.get("term")
+            if not kw:
+                continue
+            country = (normalised.get("country") or normalised.get("geo") or default_country)[:2].upper()
+            rows.append({
+                "keyword": kw.lower(),
+                "country": country,
+                "search_volume": _to_int(normalised.get("search_volume") or normalised.get("volume")),
+                "keyword_difficulty": _to_float(normalised.get("keyword_difficulty") or normalised.get("kd")),
+                "cpc": _to_float(normalised.get("cpc")),
+                "intent": normalised.get("intent"),
+                "tracked": track or normalised.get("tracked", "").lower() in ("true", "1", "yes"),
+            })
+    else:
+        # one keyword per line
+        for line in text.splitlines():
+            kw = line.strip().lstrip("-•").strip()
+            if not kw:
+                continue
+            rows.append({
+                "keyword": kw.lower(),
+                "country": default_country.upper(),
+                "search_volume": None,
+                "keyword_difficulty": None,
+                "cpc": None,
+                "intent": None,
+                "tracked": track,
+            })
+    return rows
+
+
+@router.post("/keywords/import")
+async def import_keywords(
+    project_id: uuid.UUID, payload: KeywordImportRequest, db: AsyncSession = Depends(get_db)
+):
+    """Bulk import: paste a CSV (with header `keyword,...`) or a plain list,
+    one keyword per line. Auto-detects format. Existing rows for the same
+    (project, keyword, country) are updated, new ones are created."""
+    await get_project_or_404(db, project_id)
+    rows = _parse_import_text(payload.text, payload.country, payload.track)
+    if not rows:
+        raise HTTPException(400, "No valid keywords found in input")
+
+    saved = 0
+    updated = 0
+    for r in rows:
+        existing = (await db.execute(
+            select(Keyword).where(
+                Keyword.project_id == project_id,
+                Keyword.keyword == r["keyword"],
+                Keyword.country == r["country"],
+            )
+        )).scalar_one_or_none()
+        if existing:
+            for f in ("search_volume", "keyword_difficulty", "cpc", "intent"):
+                if r.get(f) is not None:
+                    setattr(existing, f, r[f])
+            if r.get("tracked"):
+                existing.tracked = True
+            updated += 1
+        else:
+            db.add(Keyword(
+                project_id=project_id,
+                keyword=r["keyword"],
+                country=r["country"],
+                search_volume=r.get("search_volume"),
+                keyword_difficulty=r.get("keyword_difficulty"),
+                cpc=r.get("cpc"),
+                intent=r.get("intent"),
+                tracked=bool(r.get("tracked")),
+            ))
+            saved += 1
+    await db.commit()
+    return ok({"saved": saved, "updated": updated, "total": len(rows)})
 
 
 @router.post("/keywords/bulk-delete")

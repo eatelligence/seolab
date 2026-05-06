@@ -11,6 +11,7 @@ import ProjectSettings from './pages/ProjectSettings';
 import Dashboard from './pages/Dashboard';
 import Keywords from './pages/Keywords';
 import RankTracker from './pages/RankTracker';
+import SerpOverview from './pages/SerpOverview';
 import SiteAudit from './pages/SiteAudit';
 import AuditRunDetail from './pages/AuditRunDetail';
 import Backlinks from './pages/Backlinks';
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/p/:projectId/dashboard" element={<Dashboard />} />
         <Route path="/p/:projectId/keywords" element={<Keywords />} />
         <Route path="/p/:projectId/rank-tracker" element={<RankTracker />} />
+        <Route path="/p/:projectId/serp" element={<SerpOverview />} />
         <Route path="/p/:projectId/audit" element={<SiteAudit />} />
         <Route path="/p/:projectId/audit/runs/:runId" element={<AuditRunDetail />} />
         <Route path="/p/:projectId/backlinks" element={<Backlinks />} />

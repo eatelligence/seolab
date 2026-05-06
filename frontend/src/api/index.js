@@ -39,6 +39,7 @@ export const keywordsApi = {
   remove: (projectId, kid) => del(`/projects/${projectId}/keywords/${kid}`),
   bulkTrack: (projectId, keyword_ids, tracked = true) => post(`/projects/${projectId}/keywords/bulk-track`, { keyword_ids, tracked }),
   bulkDelete: (projectId, keyword_ids) => post(`/projects/${projectId}/keywords/bulk-delete`, { keyword_ids }),
+  importBulk: (projectId, body) => post(`/projects/${projectId}/keywords/import`, body),
   exportUrl: (projectId) => `${api.defaults.baseURL}/projects/${projectId}/keywords/export.csv`,
   lists: {
     list: (projectId) => get(`/projects/${projectId}/keyword-lists`),
@@ -111,6 +112,11 @@ export const contentApi = {
   history: (projectId, params) => get(`/projects/${projectId}/content/history`, params),
   historyOne: (projectId, outputId) => get(`/projects/${projectId}/content/history/${outputId}`),
   historyDelete: (projectId, outputId) => del(`/projects/${projectId}/content/history/${outputId}`),
+};
+
+// ---------- SERP Overview ----------
+export const serpApi = {
+  overview: (projectId, params) => get(`/projects/${projectId}/serp`, params),
 };
 
 // ---------- AI Visibility ----------
