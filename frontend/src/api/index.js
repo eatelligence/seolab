@@ -25,11 +25,20 @@ export const dashboardApi = {
 // ---------- Keywords ----------
 export const keywordsApi = {
   list: (projectId, params) => get(`/projects/${projectId}/keywords`, params),
-  research: (projectId, body) => post(`/projects/${projectId}/keywords/research`, body),
+  research: Object.assign(
+    (projectId, body) => post(`/projects/${projectId}/keywords/research`, body),
+    {
+      history: (projectId, limit = 50) => get(`/projects/${projectId}/keywords/research/history`, { limit }),
+      one: (projectId, runId) => get(`/projects/${projectId}/keywords/research/history/${runId}`),
+      remove: (projectId, runId) => del(`/projects/${projectId}/keywords/research/history/${runId}`),
+    },
+  ),
   related: (projectId, params) => get(`/projects/${projectId}/keywords/related`, params),
   questions: (projectId, params) => get(`/projects/${projectId}/keywords/questions`, params),
   save: (projectId, body) => post(`/projects/${projectId}/keywords/save`, body),
   remove: (projectId, kid) => del(`/projects/${projectId}/keywords/${kid}`),
+  bulkTrack: (projectId, keyword_ids, tracked = true) => post(`/projects/${projectId}/keywords/bulk-track`, { keyword_ids, tracked }),
+  bulkDelete: (projectId, keyword_ids) => post(`/projects/${projectId}/keywords/bulk-delete`, { keyword_ids }),
   exportUrl: (projectId) => `${api.defaults.baseURL}/projects/${projectId}/keywords/export.csv`,
   lists: {
     list: (projectId) => get(`/projects/${projectId}/keyword-lists`),

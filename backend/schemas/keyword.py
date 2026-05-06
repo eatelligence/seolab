@@ -62,3 +62,23 @@ class KeywordListOut(BaseModel):
     name: str
     created_at: datetime
     keyword_count: int = 0
+
+
+class BulkTrackRequest(BaseModel):
+    keyword_ids: List[uuid.UUID]
+    tracked: bool = True
+
+
+class ResearchHistoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    project_id: uuid.UUID
+    seed: str
+    country: str
+    suggest_levels: int
+    total: int
+    created_at: datetime
+
+
+class ResearchHistoryDetail(ResearchHistoryOut):
+    keywords: List[ResearchKeyword]

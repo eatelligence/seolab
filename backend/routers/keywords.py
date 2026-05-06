@@ -7,14 +7,20 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import desc
+
 from database import get_db
 from models.keyword import Keyword, KeywordList, KeywordListItem
+from models.research import KeywordResearchRun
 from routers._helpers import get_project_or_404, to_csv
 from schemas.common import ok
 from schemas.keyword import (
+    BulkTrackRequest,
     KeywordListCreate,
     KeywordListOut,
     KeywordOut,
+    ResearchHistoryDetail,
+    ResearchHistoryOut,
     ResearchKeyword,
     ResearchRequest,
     ResearchResult,
@@ -82,7 +88,60 @@ async def research(
         ))
     rows.sort(key=lambda r: (r.search_volume or 0), reverse=True)
     result = ResearchResult(seed=payload.seed, country=payload.country, total=len(rows), keywords=rows)
-    return ok(result.model_dump(mode="json"))
+
+    # Auto-save: every research run is persisted so the user can reload it later.
+    run = KeywordResearchRun(
+        project_id=project_id,
+        seed=payload.seed.strip().lower(),
+        country=payload.country.upper(),
+        suggest_levels=payload.suggest_levels,
+        total=len(rows),
+        keywords=[r.model_dump(mode="json") for r in rows],
+    )
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+
+    return ok({**result.model_dump(mode="json"), "run_id": str(run.id)})
+
+
+# ---------- Research history ----------
+
+@router.get("/keywords/research/history")
+async def research_history(
+    project_id: uuid.UUID,
+    limit: int = Query(default=50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    await get_project_or_404(db, project_id)
+    rows = (await db.execute(
+        select(KeywordResearchRun)
+        .where(KeywordResearchRun.project_id == project_id)
+        .order_by(desc(KeywordResearchRun.created_at)).limit(limit)
+    )).scalars().all()
+    return ok([ResearchHistoryOut.model_validate(r).model_dump(mode="json") for r in rows])
+
+
+@router.get("/keywords/research/history/{run_id}")
+async def research_history_one(
+    project_id: uuid.UUID, run_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+):
+    rec = await db.get(KeywordResearchRun, run_id)
+    if not rec or rec.project_id != project_id:
+        raise HTTPException(404, "Research run not found")
+    return ok(ResearchHistoryDetail.model_validate(rec).model_dump(mode="json"))
+
+
+@router.delete("/keywords/research/history/{run_id}")
+async def research_history_delete(
+    project_id: uuid.UUID, run_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+):
+    rec = await db.get(KeywordResearchRun, run_id)
+    if not rec or rec.project_id != project_id:
+        raise HTTPException(404, "Research run not found")
+    await db.delete(rec)
+    await db.commit()
+    return ok({"deleted": str(run_id)})
 
 
 @router.get("/keywords/related")
@@ -193,6 +252,46 @@ async def delete_keyword(
     await db.delete(kw)
     await db.commit()
     return ok({"deleted": str(keyword_id)})
+
+
+@router.post("/keywords/bulk-track")
+async def bulk_track(
+    project_id: uuid.UUID, payload: BulkTrackRequest, db: AsyncSession = Depends(get_db)
+):
+    """Set tracked=True/False on many keywords at once."""
+    await get_project_or_404(db, project_id)
+    if not payload.keyword_ids:
+        return ok({"updated": 0})
+    rows = (await db.execute(
+        select(Keyword).where(
+            Keyword.project_id == project_id,
+            Keyword.id.in_(payload.keyword_ids),
+        )
+    )).scalars().all()
+    for kw in rows:
+        kw.tracked = payload.tracked
+    await db.commit()
+    return ok({"updated": len(rows), "tracked": payload.tracked})
+
+
+@router.post("/keywords/bulk-delete")
+async def bulk_delete(
+    project_id: uuid.UUID, payload: BulkTrackRequest, db: AsyncSession = Depends(get_db)
+):
+    """Delete many keywords at once. Reuses BulkTrackRequest body shape."""
+    await get_project_or_404(db, project_id)
+    if not payload.keyword_ids:
+        return ok({"deleted": 0})
+    rows = (await db.execute(
+        select(Keyword).where(
+            Keyword.project_id == project_id,
+            Keyword.id.in_(payload.keyword_ids),
+        )
+    )).scalars().all()
+    for kw in rows:
+        await db.delete(kw)
+    await db.commit()
+    return ok({"deleted": len(rows)})
 
 
 @router.get("/keywords/export.csv")

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { RefreshCw, Bell, X } from 'lucide-react';
+import { RefreshCw, Bell, X, Activity, Eye, Trash2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'sonner';
 
@@ -169,25 +169,10 @@ export default function RankTracker() {
       )}
 
       {tab === 'all' && (
-        <DataTable
-          columns={[
-            { key: 'keyword', header: 'Keyword', render: (r) => <span className="text-bone">{r.keyword}</span> },
-            { key: 'country', header: 'Geo', width: 80 },
-            { key: 'search_volume', header: 'Volume', align: 'right',
-              render: (r) => <span className="num-mono">{fmtCompact(r.search_volume)}</span> },
-            { key: 'tracked', header: 'Status',
-              render: (r) => r.tracked ? <span className="text-2xs font-mono uppercase tracking-widest2 text-signal">● tracking</span> : <span className="text-2xs font-mono text-dim">off</span> },
-            {
-              key: '_act', header: '', sortable: false,
-              render: (r) => r.tracked ? (
-                <Button variant="outline" size="sm" onClick={() => stopTrack.mutate(r.id)}>stop</Button>
-              ) : (
-                <Button variant="primary" size="sm" onClick={() => startTrack.mutate(r.id)}>track</Button>
-              ),
-            },
-          ]}
+        <AllKeywordsTab
           rows={allKwQ.data?.items || []}
           loading={allKwQ.isLoading}
+          projectId={projectId}
         />
       )}
 
@@ -247,5 +232,94 @@ function Stat({ label, value }) {
         {value}
       </p>
     </div>
+  );
+}
+
+function AllKeywordsTab({ rows, loading, projectId }) {
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState(new Set());
+
+  const toggle = (id) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
+  };
+  const toggleAll = () => {
+    if (selected.size === rows.length) setSelected(new Set());
+    else setSelected(new Set(rows.map((r) => r.id)));
+  };
+
+  const bulkTrack = useMutation({
+    mutationFn: ({ ids, tracked }) => keywordsApi.bulkTrack(projectId, ids, tracked),
+    onSuccess: (r) => {
+      toast.success(`${r.updated} keyword${r.updated === 1 ? '' : 's'} ${r.tracked ? 'now tracked' : 'untracked'}`);
+      qc.invalidateQueries({ queryKey: ['keywords'] });
+      qc.invalidateQueries({ queryKey: ['rankings'] });
+      setSelected(new Set());
+    },
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: (ids) => keywordsApi.bulkDelete(projectId, ids),
+    onSuccess: (r) => {
+      toast.success(`${r.deleted} deleted`);
+      qc.invalidateQueries({ queryKey: ['keywords'] });
+      setSelected(new Set());
+    },
+  });
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-2xs font-mono uppercase tracking-widest2 text-dim">
+          {selected.size > 0 ? <span className="text-signal">{selected.size} selected</span> : `${rows.length} keywords`}
+        </p>
+        {selected.size > 0 && (
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={() => bulkTrack.mutate({ ids: Array.from(selected), tracked: true })}>
+              <Activity className="w-3.5 h-3.5" /> track ({selected.size})
+            </Button>
+            <Button variant="outline" onClick={() => bulkTrack.mutate({ ids: Array.from(selected), tracked: false })}>
+              <Eye className="w-3.5 h-3.5" /> untrack
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (window.confirm(`Delete ${selected.size} keyword${selected.size === 1 ? '' : 's'} and their ranking history?`)) {
+                  bulkDelete.mutate(Array.from(selected));
+                }
+              }}
+            >
+              <Trash2 className="w-3.5 h-3.5" /> delete
+            </Button>
+          </div>
+        )}
+      </div>
+      <DataTable
+        keyField="id"
+        columns={[
+          {
+            key: '_sel', header: <input type="checkbox" className="accent-signal"
+              checked={rows.length > 0 && selected.size === rows.length}
+              onChange={toggleAll} />,
+            sortable: false, width: 40,
+            render: (r) => (
+              <input type="checkbox" checked={selected.has(r.id)}
+                onChange={() => toggle(r.id)} className="accent-signal" />
+            ),
+          },
+          { key: 'keyword', header: 'Keyword', render: (r) => <span className="text-bone">{r.keyword}</span> },
+          { key: 'country', header: 'Geo', width: 80 },
+          { key: 'search_volume', header: 'Volume', align: 'right',
+            render: (r) => <span className="num-mono">{fmtCompact(r.search_volume)}</span> },
+          { key: 'tracked', header: 'Status',
+            render: (r) => r.tracked
+              ? <span className="text-2xs font-mono uppercase tracking-widest2 text-signal">● tracking</span>
+              : <span className="text-2xs font-mono text-dim">off</span> },
+        ]}
+        rows={rows}
+        loading={loading}
+      />
+    </>
   );
 }

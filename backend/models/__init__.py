@@ -8,6 +8,7 @@ from models.ai_visibility import AIVisibilityQuery, AIVisibilityCheck
 from models.gsc import GSCToken
 from models.user import User
 from models.content import ContentOutput
+from models.research import KeywordResearchRun
 
 __all__ = [
     "Base",
@@ -28,4 +29,5 @@ __all__ = [
     "GSCToken",
     "User",
     "ContentOutput",
+    "KeywordResearchRun",
 ]
