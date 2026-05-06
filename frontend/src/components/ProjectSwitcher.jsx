@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '@/context/ProjectContext';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +11,21 @@ export function ProjectSwitcher() {
   const [query, setQuery] = useState('');
   const ref = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const qc = useQueryClient();
+
+  // Switch project: update context, navigate to the same page on the new
+  // project's URL (so useParams() rebinds), and drop cached queries from the
+  // previous project so we don't show stale data for a frame.
+  const switchTo = (id) => {
+    setActiveId(id);
+    setOpen(false);
+    qc.removeQueries();
+    const pathRe = /\/p\/[^/]+(\/.*)?$/;
+    const match = location.pathname.match(pathRe);
+    const tail = match?.[1] || '/dashboard';
+    navigate(`/p/${id}${tail}`);
+  };
 
   useEffect(() => {
     const onClick = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
@@ -67,7 +83,7 @@ export function ProjectSwitcher() {
                 return (
                   <button
                     key={p.id}
-                    onClick={() => { setActiveId(p.id); setOpen(false); }}
+                    onClick={() => switchTo(p.id)}
                     className={cn(
                       'w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-ink-100 transition-colors',
                       active_ && 'bg-ink-100',
