@@ -170,20 +170,39 @@ def _summary(issues: List[dict]) -> dict:
     return {"by_type": dict(by_type), "by_severity": dict(by_severity), "total": len(issues)}
 
 
-async def run_audit(
-    db: AsyncSession,
-    project_id: uuid.UUID,
-    run_pagespeed: bool = True,
-) -> AuditRun:
-    project = await db.get(Project, project_id)
-    if not project:
-        raise ValueError(f"Project {project_id} not found")
-
-    run = AuditRun(project_id=project_id, status="running",
-                   started_at=dt.datetime.now(dt.timezone.utc))
+async def start_audit_run(db: AsyncSession, project_id: uuid.UUID) -> uuid.UUID:
+    """Create a pending AuditRun row and return its id. The actual crawl is
+    performed by ``run_audit`` against this id.
+    """
+    run = AuditRun(project_id=project_id, status="pending")
     db.add(run)
     await db.commit()
     await db.refresh(run)
+    return run.id
+
+
+async def run_audit(
+    db: AsyncSession,
+    run_id: uuid.UUID,
+    run_pagespeed: bool = True,
+) -> AuditRun:
+    """Drive an existing pending/running AuditRun row to completion in place.
+    Single source of truth for the row — no duplicates."""
+    run = await db.get(AuditRun, run_id)
+    if not run:
+        raise ValueError(f"AuditRun {run_id} not found")
+
+    project = await db.get(Project, run.project_id)
+    if not project:
+        run.status = "failed"
+        run.error = f"Project {run.project_id} not found"
+        run.completed_at = dt.datetime.now(dt.timezone.utc)
+        await db.commit()
+        raise ValueError(f"Project {run.project_id} not found")
+
+    run.status = "running"
+    run.started_at = dt.datetime.now(dt.timezone.utc)
+    await db.commit()
 
     try:
         crawler = Crawler(root_url=project.domain)
@@ -238,7 +257,7 @@ async def run_audit(
         await db.refresh(run)
         return run
     except Exception as e:
-        log.exception("audit failed for project=%s", project_id)
+        log.exception("audit failed for run=%s project=%s", run.id, run.project_id)
         run.status = "failed"
         run.error = str(e)[:1000]
         run.completed_at = dt.datetime.now(dt.timezone.utc)

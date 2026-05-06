@@ -69,13 +69,14 @@ def run_rank_tracker_for_all_projects() -> dict:
 
 @celery.task(name="workers.tasks.run_site_audit_for_project")
 def run_site_audit_for_project(project_id: str) -> dict:
-    from services.audit import run_audit
+    from services.audit import run_audit, start_audit_run
 
     async def _run():
         Session = _session()
         async with Session() as db:
-            run = await run_audit(db, uuid.UUID(project_id), run_pagespeed=True)
-            return run.id
+            run_id = await start_audit_run(db, uuid.UUID(project_id))
+            await run_audit(db, run_id, run_pagespeed=True)
+            return run_id
 
     run_id = asyncio.run(_run())
     log.info("audit completed for project=%s run=%s", project_id, run_id)

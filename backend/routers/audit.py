@@ -11,18 +11,18 @@ from models.audit import AuditIssue, AuditPage, AuditRun
 from routers._helpers import get_project_or_404
 from schemas.audit import AuditIssueOut, AuditPageOut, AuditRunOut, AuditRunRequest
 from schemas.common import ok
-from services.audit import run_audit
+from services.audit import run_audit, start_audit_run
 
 router = APIRouter(prefix="/api/projects/{project_id}/audit", tags=["audit"])
 log = logging.getLogger(__name__)
 
 
-async def _run_audit_bg(project_id: uuid.UUID, run_pagespeed: bool):
+async def _run_audit_bg(run_id: uuid.UUID, run_pagespeed: bool):
     async with AsyncSessionLocal() as db:
         try:
-            await run_audit(db, project_id, run_pagespeed=run_pagespeed)
+            await run_audit(db, run_id, run_pagespeed=run_pagespeed)
         except Exception:
-            log.exception("background audit failed for project=%s", project_id)
+            log.exception("background audit failed for run=%s", run_id)
 
 
 @router.post("/runs")
@@ -41,13 +41,9 @@ async def start_audit(
     if in_flight:
         raise HTTPException(409, "An audit is already running for this project")
 
-    run = AuditRun(project_id=project_id, status="pending")
-    db.add(run)
-    await db.commit()
-    await db.refresh(run)
-
-    background.add_task(_run_audit_bg, project_id, payload.run_pagespeed)
-    return ok({"run_id": str(run.id), "status": "pending"})
+    run_id = await start_audit_run(db, project_id)
+    background.add_task(_run_audit_bg, run_id, payload.run_pagespeed)
+    return ok({"run_id": str(run_id), "status": "pending"})
 
 
 @router.get("/runs")
